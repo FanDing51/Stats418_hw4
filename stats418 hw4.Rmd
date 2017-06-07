@@ -1,0 +1,151 @@
+---
+title: "Stat 418 HW4"
+author: "Fan Ding (604172042)"
+date: "June 6th, 2017"
+output: html_document
+---
+I. Introduction
+The adult dataset was extracted from 1994 census bureau database at http://www.census.gov/ftp/pub/DES/www/welcome.html. It contains 14 variables and 48842 observations. 
+The goal for this analysis is to determine whether a person makes over 50k a year, given various factors including an individual's age, gender, educational level, occupation and so on.
+The dataset was split into three partitions using random selection for training, validation and test respectively.
+
+II. Model Construction
+Neural Network
+Neural network is a computational model used in machine learning. It is based ona large collection of connected simple units called aritificial neurons, which are connected in layers.
+Activation: the mapping of the input to the output via a non-linear transformation function at each node.
+Momentum: determines the speed of convergence to a point of minimal error.
+Epoch: one epoch means one pass of the full training set.
+Dropout: a hyperparameter for regularization to prevent overfitting.
+Learning rate: how quickly a network makes change.
+```{r}
+library(h2o)
+h2o.init(nthreads=-1)
+adult_nn <- h2o.importFile("/Users/apple/Desktop/adult.txt")
+colnames(adult_nn) <- c("id","age","workclass","final_weight","education","education_num","marital_status","occupation","relationship","race","sex","capital_gain","capital_loss","hours_per_week","natice_country","aw_over_50k")
+adult_nn <- adult_nn[,-1]
+adult_nn$aw_over_50k <- as.factor(adult_nn$aw_over_50k)
+
+adult_nn_split <- h2o.splitFrame(adult_nn, ratios=c(0.6,0.2), seed = 123)
+adult_nn_train <- adult_nn_split[[1]]
+adult_nn_validation <- adult_nn_split[[2]]
+adult_nn_test <- adult_nn_split[[3]]
+
+adult_nn_names <- names(adult_nn_train)[which(names(adult_nn_train)!="aw_over_50k")]
+
+nn1 <- h2o.deeplearning(x = adult_nn_names, y = "aw_over_50k", training_frame = adult_nn_train, validation_frame = adult_nn_validation, epochs = 100, stopping_rounds = 2, stopping_metric = "AUC", stopping_tolerance = 0)
+h2o.performance(nn1, adult_nn_test)@metrics$AUC
+
+nn2 <- h2o.deeplearning(x = adult_nn_names, y = "aw_over_50k", training_frame = adult_nn_train, validation_frame = adult_nn_validation, activation = "Rectifier", hidden = c(50,50,50,50), input_dropout_ratio = 0.2, epochs = 100, stopping_rounds = 2, stopping_metric = "AUC", stopping_tolerance = 0)
+h2o.performance(nn2, adult_nn_test)@metrics$AUC
+
+nn3 <- h2o.deeplearning(x = adult_nn_names, y = "aw_over_50k", training_frame = adult_nn_train, validation_frame = adult_nn_validation, activation = "Rectifier", hidden = c(20,20), epochs = 100, stopping_rounds = 2, stopping_metric = "AUC", stopping_tolerance = 0)
+h2o.performance(nn3, adult_nn_test)@metrics$AUC
+
+nn4 <- h2o.deeplearning(x = adult_nn_names, y = "aw_over_50k", training_frame = adult_nn_train, validation_frame = adult_nn_validation, activation = "Rectifier", hidden = c(5), epochs = 100, stopping_rounds = 2, stopping_metric = "AUC", stopping_tolerance = 0)
+h2o.performance(nn4, adult_nn_test)@metrics$AUC
+
+nn5 <- h2o.deeplearning(x = adult_nn_names, y = "aw_over_50k", training_frame = adult_nn_train, validation_frame = adult_nn_validation, activation = "Rectifier", hidden = c(200,200), l1 = 1e-5, l2 = 1e-5, epochs = 100, stopping_rounds = 2, stopping_metric = "AUC", stopping_tolerance = 0)
+h2o.performance(nn5, adult_nn_test)@metrics$AUC
+
+nn6 <- h2o.deeplearning(x = adult_nn_names, y = "aw_over_50k", training_frame = adult_nn_train, validation_frame = adult_nn_validation, activation = "Rectifier", hidden = c(200,200), rho = 0.9999, epsilon = 1e-06, epochs = 100, stopping_rounds = 2, stopping_metric = "AUC", stopping_tolerance = 0)
+h2o.performance(nn6, adult_nn_test)@metrics$AUC
+
+nn7 <- h2o.deeplearning(x = adult_nn_names, y = "aw_over_50k", training_frame = adult_nn_train, validation_frame = adult_nn_validation, activation = "Rectifier", hidden = c(200,200), adaptive_rate = FALSE, epochs = 100, stopping_rounds = 2, stopping_metric = "AUC", stopping_tolerance = 0)
+h2o.performance(nn7, adult_nn_test)@metrics$AUC
+
+nn8 <- h2o.deeplearning(x = adult_nn_names, y = "aw_over_50k", training_frame = adult_nn_train, validation_frame = adult_nn_validation, activation = "Rectifier", hidden = c(200,200), adaptive_rate = FALSE, rate = 0.001, momentum_start = 0.5, momentum_ramp = 1e5, momentum_stable = 0.99, epochs = 100, stopping_rounds = 2, stopping_metric = "AUC", stopping_tolerance = 0)
+h2o.performance(nn8, adult_nn_test)@metrics$AUC
+
+nn9 <- h2o.deeplearning(x = adult_nn_names, y = "aw_over_50k", training_frame = adult_nn_train, validation_frame = adult_nn_validation, activation = "Rectifier", hidden = c(200,200), adaptive_rate = FALSE, rate = 0.01, rate_annealing = 1e-05, momentum_start = 0.5, momentum_ramp = 1e5, momentum_stable = 0.99, epochs = 100, stopping_rounds = 2, stopping_metric = "AUC", stopping_tolerance = 0)
+h2o.performance(nn9, adult_nn_test)@metrics$AUC
+
+nn10 <- h2o.deeplearning(x = adult_nn_names, y = "aw_over_50k", training_frame = adult_nn_train, validation_frame = adult_nn_validation, activation = "Rectifier", hidden = c(200,200), adaptive_rate = FALSE, rate = 0.01, rate_annealing = 1e-04, momentum_start = 0.5, momentum_ramp = 1e5, momentum_stable = 0.99, epochs = 100, stopping_rounds = 2, stopping_metric = "AUC", stopping_tolerance = 0)
+h2o.performance(nn10, adult_nn_test)@metrics$AUC
+
+nn11 <- h2o.deeplearning(x = adult_nn_names, y = "aw_over_50k", training_frame = adult_nn_train, validation_frame = adult_nn_validation, activation = "Rectifier", hidden = c(200,200), adaptive_rate = FALSE, rate = 0.01, rate_annealing = 1e-05, momentum_start = 0.5, momentum_ramp = 1e5, momentum_stable = 0.9, epochs = 100, stopping_rounds = 2, stopping_metric = "AUC", stopping_tolerance = 0)
+h2o.performance(nn11, adult_nn_test)@metrics$AUC
+plot(h2o.performance(nn11, adult_nn_test))
+summary(nn11)
+```
+ROC curve: reveiver operating characteristic curve, created by plotting the true positive rate (meaning the ratio between number of false positives and total number of predictions) against the false positive rate (meaning the ratio between number of true positives and total number of predictions) of a model.
+FP, TP tradeoff for nn11: when false positive rate is small, true positive rate is also small. If we increase false positive rate, true positive rate will also increase. When false positive rate gets close to 0.3, true positive rate can reach around 0.9 and this is a relatively reasonable level.
+AUC: area under ROC curve. It indicates the probability that a classifier will rank a randomly chosen positive instance higher than a randomly chosen negative one. In other words, the larger the AUC, the more accurate the model and the prediction will be. This is the criterion I use to determine the goodness of a model, and to select the final model to use.
+The model nn11 has the highest auc of 0.9161398, so it is relatively better than models with other parameters here.
+Since nn11 is the best model for now, we use summary command to calculate the training time. The duration for this model is actually 39.333 sec.
+
+Hyperparameter Optimization for GBMs with Random Search
+Hyperparameters affect how the learning algorithm fits the model to the data. This is different from internal model parameters which get learned from the data during the model training process.
+```{r}
+adult_ho <- h2o.importFile("/Users/apple/Desktop/adult.txt")
+colnames(adult_ho) <- c("id","age","workclass","final_weight","education","education_num","marital_status","occupation","relationship","race","sex","capital_gain","capital_loss","hours_per_week","natice_country","aw_over_50k")
+adult_ho <- adult_ho[,-1]
+adult_ho$aw_over_50k <- as.factor(adult_ho$aw_over_50k)
+
+adult_ho_split <- h2o.splitFrame(adult_ho, ratios=c(0.6,0.2), seed = 123)
+adult_ho_train <- adult_ho_split[[1]]
+adult_ho_validation <- adult_ho_split[[2]]
+adult_ho_test <- adult_ho_split[[3]]
+
+adult_ho_names <- names(adult_ho_train)[which(names(adult_ho_train)!="aw_over_50k")]
+
+hyper_params <- list(ntrees = 1000, max_depth = 5:15, min_rows = c(1,3,10,30,100), learn_rate = c(0.01,0.03,0.1), learn_rate_annealing = c(0.99,0.995,1,1), sample_rate = c(0.4,0.7,1,1), col_sample_rate = c(0.7,1,1), nbins = c(30,100,300), nbins_cats = c(64,256,1024))
+search_criteria <- list(strategy = "RandomDiscrete", max_runtime_secs = 10*3600, max_models = 100)
+
+ho <- h2o.grid(algorithm = "gbm", grid_id = "grd", x = adult_ho_names, y = "aw_over_50k", training_frame = adult_ho_train, validation_frame = adult_ho_validation, hyper_params = hyper_params, search_criteria = search_criteria, stopping_metric = "AUC", stopping_tolerance = 1e-3, stopping_rounds = 2, seed = 123)
+ho_sort <- h2o.getGrid(grid_id = "grd", sort_by = "auc", decreasing = TRUE)
+ho_sort
+ho_best <- h2o.getModel(ho_sort@model_ids[[1]])
+summary(ho_best)
+h2o.auc(h2o.performance(ho_best, adult_nn_test))
+plot(h2o.performance(ho_best, adult_nn_test))
+```
+This model uses hyperparameter optimzation for gradient boosted machines with a random search. The auc of 0.9236973 is higher than any models using the neural network.
+FP, TP tradeoff for ho_best: when false positive rate is small, true positive rate is also small. If we increase false positive rate, true positive rate will also increase. When false positive rate gets close to 0.2, true positive rate can reach around 0.9 and this is a relatively reasonable level.
+The training time is 11 min 3.445 sec.
+
+Ensembling Various Model
+```{r}
+adult_split <- h2o.splitFrame(adult_nn, ratios = 0.7, seed = 123)
+adult_train <- adult_nn_split[[1]]
+adult_test <- adult_nn_split[[2]]
+
+adult_names <- setdiff(names(adult_train), "aw_over_50k")
+
+md1 <- h2o.glm(x = adult_names, y = "aw_over_50k", training_frame = adult_train, family = "binomial", alpha = 1, lambda = 0, seed = 123, nfolds = 5, fold_assignment = "Modulo", keep_cross_validation_predictions = TRUE)
+
+md2 <- h2o.randomForest(x = adult_names, y = "aw_over_50k", training_frame = adult_train, ntrees = 300, seed = 123, nfolds = 5, fold_assignment = "Modulo", keep_cross_validation_predictions = TRUE)
+
+md3 <- h2o.gbm(x = adult_names, y = "aw_over_50k", training_frame = adult_train, distribution = "bernoulli", ntrees = 200, max_depth = 10, learn_rate = 0.1, nbins = 100, seed = 123, nfolds = 5, fold_assignment = "Modulo", keep_cross_validation_predictions = TRUE)
+
+md4 <- h2o.deeplearning(x = adult_names, y = "aw_over_50k", training_frame = adult_train, epochs = 5, seed = 123, nfolds = 5, fold_assignment = "Modulo", keep_cross_validation_predictions = TRUE)
+
+md_ens <- h2o.stackedEnsemble(x = adult_names, y = "aw_over_50k", training_frame = adult_train, base_models = list(md1@model_id, md2@model_id, md3@model_id, md4@model_id))
+
+h2o.auc(h2o.performance(md1, adult_test))
+h2o.auc(h2o.performance(md2, adult_test))
+h2o.auc(h2o.performance(md3, adult_test))
+h2o.auc(h2o.performance(md4, adult_test))
+h2o.auc(h2o.performance(md_ens, adult_test))
+plot(h2o.performance(md3, adult_test))
+
+h2o.getModel(md_ens@model$metalearner$name)@model$coefficients_table
+
+summary(md1)
+summary(md2)
+summary(md3)
+summary(md4)
+summary(md_ens)
+```
+Comparing all models in the ensembling part, the best model is md3, which is GBM model, with the highest auc of 0.9173594, even better than md_ens.
+Training time for md1 is 0.092 sec.
+Training time for md2 is 3 min 42.671 sec.
+Training time for md3 is 1 min 42.045 sec.
+Training time for md4 is 2 min  6.948 sec.
+FP, TP tradeoff for md3: when false positive rate is small, true positive rate is also small. If we increase false positive rate, true positive rate will also increase. When false positive rate gets close to 0.2, true positive rate can reach around 0.9 and this is a relatively reasonable level.
+
+III. Conclusion
+According to auc, the most accurate model is the BGM with hyperparameter optimization and random search, but it takes the longest time as well. The second "best" model is the gbm model without hyperparameter optimization and random search (from homework 3), and the training time is within 4 minutes, which is much less than the previous one. Compared with these two, the other models including logistic regression, random forest (from homework 3) and neural networks are not as effective in prediction, since they have relatively smaller auc.
+
+From the summary of the best model ho_best, 3 of the most important variables in predicting an individual's annual wage (> 50k or not) are relationship, education and capital_gain (take up about 62% of the importance). On the contrary, 3 least important factors are race, sex and education_num.
+
+For the further research, I will remove those three least important predictors to build the models above again, to see the improvement in both accuracy and efficiency.
